@@ -255,7 +255,7 @@ This template is designed as a foundation for your customer service needs:
 If you encounter issues:
 1. Check the console output for error messages
 2. Verify all requirements are installed
-3. Ensure your Groq API key is valid and has credits
+3. Ensure your Groq API key is valid
 4. Check the [Groq Community Forum](https://community.groq.com) for support
 
 ## Next Steps
