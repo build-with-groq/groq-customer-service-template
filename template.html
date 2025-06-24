@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Groq Customer Service Pipeline Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #333333 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #FF8C00 0%, #FFA500 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .demo-modes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .demo-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .demo-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+            border-color: #2196F3;
+        }
+
+        .demo-card h3 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .demo-card p {
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #2196F3 0%, #21CBF3 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(33, 150, 243, 0.3);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #f57c00 0%, #ef6c00 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 152, 0, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+        }
+
+        .btn-small {
+            padding: 10px 20px;
+            font-size: 14px;
+            margin: 5px;
+        }
+
+        /* Pipeline Visualization */
+        .pipeline-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .pipeline-panel.active {
+            display: block;
+        }
+
+        .pipeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .pipeline-progress {
+            flex: 1;
+            margin-right: 20px;
+        }
+
+        .progress-bar {
+            background: #e0e0e0;
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            height: 100%;
+            border-radius: 10px;
+        }
+
+        .pipeline-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .pipeline-step {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            border-left: 4px solid #e0e0e0;
+        }
+
+        .pipeline-step.running {
+            border-left-color: #2196F3;
+            background: #e3f2fd;
+            animation: pulse 2s infinite;
+        }
+
+        .pipeline-step.completed {
+            border-left-color: #4caf50;
+            background: #f1f8e9;
+        }
+
+        .pipeline-step.warning {
+            border-left-color: #ff9800;
+            background: #fff3e0;
+        }
+
+        .pipeline-step.failed {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .step-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .step-timing {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .step-details {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.4;
+        }
+
+        .step-model {
+            font-size: 11px;
+            color: #888;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .scenario-display {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #2196F3;
+        }
+
+        .result-display {
+            background: #f1f8e9;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #4caf50;
+        }
+
+        .custom-input-section {
+            background: #fff3e0;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .custom-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .custom-input:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2196F3;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .review-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+            display: none;
+        }
+
+        .review-section.active {
+            display: block;
+        }
+
+        .customer-input {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196F3;
+        }
+
+        .ai-response {
+            background: #fff3e0;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ff9800;
+        }
+
+        .edit-section {
+            background: #f1f8e9;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #4caf50;
+        }
+
+        .review-textarea {
+            width: 100%;
+            min-height: 140px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 15px;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        .review-textarea:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #2196F3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #cce7ff;
+            color: #004085;
+            border: 1px solid #b8daff;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .timing-breakdown {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .timing-item {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .timing-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #2196F3;
+        }
+
+        .timing-label {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        /* Bottom navigation section */
+        .bottom-nav {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-top: 2px solid #e0e0e0;
+            border-radius: 0 0 15px 15px;
+            padding: 25px;
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .bottom-nav .btn {
+            font-size: 18px;
+            padding: 15px 40px;
+            min-width: 200px;
+            margin: 0 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Groq Customer Service Pipeline</h1>
+            <p>AI customer service with real-time pipeline visualization</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Demo Mode Selection -->
+            <div id="demo-selection" class="demo-modes">
+                <div class="demo-card">
+                    <h3>🎯 Interactive Demo</h3>
+                    <p>Step through challenging customer service scenarios one by one with detailed pipeline
+                        visualization</p>
+                    <button class="btn" onclick="startInteractiveDemo()">Start Interactive Demo</button>
+                </div>
+            </div>
+
+            <!-- Pipeline Visualization Panel -->
+            <div id="pipeline-panel" class="pipeline-panel">
+                <div class="pipeline-header">
+                    <div class="pipeline-progress">
+                        <h3 id="pipeline-title">Pipeline Progress</h3>
+                        <div class="progress-bar">
+                            <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+                        </div>
+                        <div id="progress-text">Initializing...</div>
+                    </div>
+                </div>
+
+                <div id="scenario-display" class="scenario-display" style="display: none;"></div>
+
+                <div id="pipeline-steps" class="pipeline-steps"></div>
+
+                <div id="result-display" class="result-display" style="display: none;"></div>
+
+            </div>
+
+            <!-- Review Section -->
+            <div id="review-section" class="review-section">
+                <h3>👨‍💼 Human Review Required</h3>
+
+                <div class="customer-input">
+                    <h4>📧 Customer Message:</h4>
+                    <p id="review-customer-text"></p>
+                </div>
+
+                <div class="ai-response">
+                    <h4>🤖 AI Generated Response:</h4>
+                    <p id="review-ai-response"></p>
+                </div>
+
+                <div class="edit-section">
+                    <h4>✏️ Your Improved Response:</h4>
+                    <textarea id="review-textarea" class="review-textarea"
+                        placeholder="Review and edit the response to improve clarity, tone, and helpfulness..."></textarea>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button class="btn" onclick="submitReview()">Submit Review ✓</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bottom-nav">
+                <button id="next-btn" class="btn btn-secondary" onclick="nextScenario()" style="display: none;">Next
+                    Scenario →</button>
+                <button id="reset-btn" class="btn btn-small" onclick="resetDemo()" style="display: none;">Reset
+                    Demo</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentReviewId = null;
+        let demoState = 'idle';
+        let statusCheckInterval = null;
+        let pipelineCheckInterval = null;
+        let currentScenarioId = null;
+        let lastResult = null;
+
+        // Pipeline step names and icons
+        const PIPELINE_STEPS = {
+            'pipeline_start': { icon: '🚀', name: 'Pipeline Start' },
+            'safety_check': { icon: '🔒', name: 'Initial Safety Check' },
+            'response_generation': { icon: '🤖', name: 'Response Generation' },
+            'human_review': { icon: '👤', name: 'Human Review' },
+            'final_safety': { icon: '🛡️', name: 'Final Safety Check' },
+            'tone_validation': { icon: '🎯', name: 'Tone Validation' },
+            'content_rewrite': { icon: '✏️', name: 'Content Rewrite' },
+            'pipeline_complete': { icon: '✅', name: 'Pipeline Complete' }
+        };
+
+        // Start interactive demo
+        async function startInteractiveDemo() {
+            const response = await fetch('/api/start_interactive_demo', { method: 'POST' });
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                showPipelinePanel('🎯 Interactive Demo Mode');
+                demoState = 'interactive';
+                startStatusUpdates();
+                hideElement('demo-selection');
+
+                // Immediately load the first scenario instead of waiting for polling
+                await loadCurrentScenario();
+
+            }
+        }
+
+        // Move to next scenario in interactive mode
+        async function nextScenario() {
+            const response = await fetch('/api/next_scenario', { method: 'POST' });
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                // Clear current scenario processing state
+                currentScenarioId = null;
+
+                // Hide result display and buttons immediately
+                hideElement('result-display');
+                hideElement('next-btn');
+
+                // Clear pipeline steps
+                document.getElementById('pipeline-steps').innerHTML = '';
+
+                // Reset scenario display
+                hideElement('scenario-display');
+
+                // Clear last result to prevent it from showing again
+                lastResult = null;
+
+                // Clear the result display content immediately
+                document.getElementById('result-display').innerHTML = '';
+
+                // Immediately load the next scenario instead of waiting for polling
+                await loadCurrentScenario();
+
+            } else if (data.status === 'completed') {
+                hideElement('next-btn');
+                showElement('reset-btn');
+            }
+        }
+
+        // Load current scenario immediately (new function to fix race conditions)
+        async function loadCurrentScenario() {
+            const scenarioResponse = await fetch('/api/get_current_scenario');
+            const scenarioData = await scenarioResponse.json();
+
+            if (scenarioData.status === 'success' && scenarioData.can_process) {
+
+                // Update progress bar immediately
+                const statusResponse = await fetch('/api/get_demo_status');
+                const statusData = await statusResponse.json();
+                if (statusData.state === 'running') {
+                    const progress = ((statusData.current_scenario - 1) / statusData.total_scenarios) * 100;
+                    document.getElementById('progress-fill').style.width = progress + '%';
+                    document.getElementById('progress-text').textContent = `Scenario ${statusData.current_scenario} of ${statusData.total_scenarios} | Results: ${statusData.results_count}`;
+                }
+
+                // Auto-process the scenario immediately
+                await autoProcessCurrentScenario();
+
+            } else if (scenarioData.status === 'no_scenario') {
+                // All scenarios completed
+                hideElement('next-btn');
+                showElement('reset-btn');
+                hideElement('scenario-display');
+            }
+        }
+
+        // Auto-process current scenario (replaces manual process button)
+        async function autoProcessCurrentScenario() {
+            const response = await fetch('/api/process_current_scenario', { method: 'POST' });
+            const data = await response.json();
+
+            if (data.status === 'processing') {
+                currentScenarioId = data.scenario_id;
+                startPipelineTracking();
+            }
+        }
+
+        // Reset demo
+        async function resetDemo() {
+            await fetch('/api/reset_demo', { method: 'POST' });
+            window.location.reload();
+
+            // Reset all UI elements
+            hideElement('pipeline-panel');
+            hideElement('review-section');
+            hideElement('scenario-display');
+            hideElement('next-btn');
+            hideElement('reset-btn');
+            hideElement('result-display');
+            hideElement('custom-input-section');
+            showElement('demo-selection');
+
+            // Clear all content
+            document.getElementById('pipeline-steps').innerHTML = '';
+            document.getElementById('result-display').innerHTML = '';
+            document.getElementById('progress-fill').style.width = '0%';
+            document.getElementById('progress-text').textContent = 'Initializing...';
+
+            // Clear custom input field
+            document.getElementById('custom-input').value = '';
+
+            // Clear review section content
+            document.getElementById('review-customer-text').textContent = '';
+            document.getElementById('review-ai-response').textContent = '';
+            document.getElementById('review-textarea').value = '';
+
+            // Reset all state variables
+            stopStatusUpdates();
+            stopPipelineTracking();
+            demoState = 'idle';
+            currentScenarioId = null;
+            currentReviewId = null;
+            lastResult = null;
+        }
+
+        // Submit review
+        async function submitReview() {
+            if (!currentReviewId) return;
+
+            const editedResponse = document.getElementById('review-textarea').value;
+
+            const response = await fetch('/api/submit_review', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    review_id: currentReviewId,
+                    edited_response: editedResponse
+                })
+            });
+
+            const data = await response.json();
+            if (data.status === 'success') {
+                hideElement('review-section');
+                currentReviewId = null;
+
+                // Restart pipeline tracking if we have an active scenario (for remaining steps like tone validation)
+                if (currentScenarioId) {
+                    startPipelineTracking();
+                }
+
+                // Show next scenario button again after review is submitted (if in interactive mode)
+                updateButtonVisibility();
+            }
+        }
+
+        // Start status updates
+        function startStatusUpdates() {
+            if (statusCheckInterval) clearInterval(statusCheckInterval);
+
+            statusCheckInterval = setInterval(async () => {
+                await updateStatus();
+                await checkForReview();
+            }, 1000);
+        }
+
+        // Stop status updates
+        function stopStatusUpdates() {
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+                statusCheckInterval = null;
+            }
+        }
+
+        // Start pipeline tracking
+        function startPipelineTracking() {
+            if (pipelineCheckInterval) clearInterval(pipelineCheckInterval);
+
+            pipelineCheckInterval = setInterval(async () => {
+                await updatePipelineProgress();
+            }, 500); // More frequent updates for pipeline
+        }
+
+        // Stop pipeline tracking
+        function stopPipelineTracking() {
+            if (pipelineCheckInterval) {
+                clearInterval(pipelineCheckInterval);
+                pipelineCheckInterval = null;
+            }
+        }
+
+        // Update demo status
+        async function updateStatus() {
+            try {
+                const response = await fetch('/api/get_demo_status');
+                const data = await response.json();
+
+                const progressText = document.getElementById('progress-text');
+
+                if (data.state === 'running') {
+                    if (demoState === 'interactive') {
+                        // Only update progress text if not actively processing a scenario
+                        if (!currentScenarioId) {
+                            progressText.textContent = `Scenario ${data.current_scenario} of ${data.total_scenarios} | Results: ${data.results_count}`;
+
+                            // Update progress bar if no active scenario is being processed
+                            const progress = ((data.current_scenario - 1) / data.total_scenarios) * 100;
+                            document.getElementById('progress-fill').style.width = progress + '%';
+                        }
+                    } else if (demoState === 'custom') {
+                        progressText.textContent = `Processing custom input...`;
+                    }
+                } else if (data.state === 'completed') {
+                    progressText.textContent = `✅ Demo completed! | Total results: ${data.results_count}`;
+                    // Only update to 100% if no active scenario processing
+                    if (!currentScenarioId) {
+                        document.getElementById('progress-fill').style.width = '100%';
+                    }
+                    // Hide next button when demo is completed and show reset button
+                    hideElement('next-btn');
+                    showElement('reset-btn');
+                    stopStatusUpdates();
+                    stopPipelineTracking();
+                }
+
+                // Show latest result only if we have a current scenario result and it's different
+                if (data.results && data.results !== lastResult) {
+                    displayResult(data.results);
+                    lastResult = data.results;
+
+                    // Update button visibility when we have new results
+                    updateButtonVisibility();
+
+                    // If in custom mode and we have results, show reset button after processing is complete
+                    if (demoState === 'custom' && !currentScenarioId) {
+                        progressText.textContent = `✅ Custom input processed successfully!`;
+                        document.getElementById('progress-fill').style.width = '100%';
+                        showElement('reset-btn');
+                        stopStatusUpdates();
+                        stopPipelineTracking();
+                    }
+                } else if (!data.results && lastResult) {
+                    // If no current result but we had one before, clear it
+                    hideElement('result-display');
+                    lastResult = null;
+                }
+
+            } catch (error) {
+                console.error('Error updating status:', error);
+            }
+        }
+
+        // Update pipeline progress with detailed visualization
+        async function updatePipelineProgress() {
+            if (!currentScenarioId) return;
+
+            try {
+                const response = await fetch('/api/get_pipeline_progress');
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    updatePipelineSteps(data.steps);
+
+                    // Update progress bar based on pipeline progress
+                    const progress = Math.min((data.current_step / data.total_steps) * 100, 100);
+                    document.getElementById('progress-fill').style.width = progress + '%';
+
+                    // Check if pipeline is completed
+                    if (data.completed) {
+                        stopPipelineTracking();
+                        currentScenarioId = null;
+
+                        // Handle completion based on demo mode
+                        if (demoState === 'custom') {
+                            document.getElementById('progress-text').textContent = `✅ Custom input processed successfully!`;
+                            document.getElementById('progress-fill').style.width = '100%';
+                            showElement('reset-btn');
+                            stopStatusUpdates();
+                        }
+
+                        // Update button visibility now that scenario is complete
+                        updateButtonVisibility();
+                    }
+
+                } else if (data.status === 'no_progress') {
+                    // Pipeline tracking lost, stop tracking
+                    stopPipelineTracking();
+                    currentScenarioId = null;
+                }
+            } catch (error) {
+                console.error('Error updating pipeline progress:', error);
+                // On error, stop tracking to prevent infinite polling
+                stopPipelineTracking();
+                currentScenarioId = null;
+            }
+        }
+
+        // Update pipeline steps visualization
+        function updatePipelineSteps(steps) {
+            const stepsContainer = document.getElementById('pipeline-steps');
+            stepsContainer.innerHTML = '';
+
+            steps.forEach(step => {
+                // Determine the appropriate status class
+                let statusClass = step.status;
+
+                // Check if safety check or tone validation failed
+                if ((step.step_name === 'safety_check' || step.step_name === 'final_safety' || step.step_name === 'tone_validation')
+                    && step.status === 'completed'
+                    && step.details && step.details.toUpperCase().includes('FAILED')) {
+                    statusClass = 'warning';
+                }
+
+                const stepElement = document.createElement('div');
+                stepElement.className = `pipeline-step ${statusClass}`;
+
+                const stepInfo = PIPELINE_STEPS[step.step_name] || { icon: '⚙️', name: step.step_name };
+
+                stepElement.innerHTML = `
+                    <div class="step-header">
+                        <div class="step-name">${stepInfo.icon} ${stepInfo.name}</div>
+                        <div class="step-timing">${step.duration_ms.toFixed(1)}ms</div>
+                    </div>
+                    <div class="step-details">${step.details}</div>
+                    ${step.model_used ? `<div class="step-model">Model: ${step.model_used}</div>` : ''}
+                `;
+
+                stepsContainer.appendChild(stepElement);
+            });
+        }
+
+        // Check for human review requests
+        async function checkForReview() {
+            try {
+                const response = await fetch('/api/get_review');
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    currentReviewId = data.review_id;
+                    document.getElementById('review-customer-text').textContent = data.customer_input;
+                    document.getElementById('review-ai-response').textContent = data.ai_response;
+                    document.getElementById('review-textarea').value = data.ai_response;
+                    showElement('review-section');
+
+                    // Hide next scenario button when review is active
+                    hideElement('next-btn');
+                }
+            } catch (error) {
+                console.error('Error checking for review:', error);
+            }
+        }
+
+        // Display processing result
+        function displayResult(result) {
+            const resultDisplay = document.getElementById('result-display');
+
+            // Check if content was rewritten (tone issues detected)
+            const wasRewritten = result.tone_issues && result.tone_issues.length > 0;
+            const hasSafetyIssues = result.safety_issues && result.safety_issues.length > 0;
+
+            let rewriteInfo = '';
+            if (wasRewritten) {
+                rewriteInfo = `
+                    <p><strong>⚠️ Tone Issues Detected:</strong> ${result.tone_issues.join(', ')}</p>
+                    <p><strong>✏️ Content Rewritten:</strong> Response was automatically improved to meet professional standards</p>
+                `;
+            }
+
+            let safetyInfo = '';
+            if (hasSafetyIssues) {
+                safetyInfo = `<p><strong>🛡️ Safety Issues:</strong> ${result.safety_issues.join(', ')}</p>`;
+            }
+
+            resultDisplay.innerHTML = `
+                <h4>✅ Processing Complete</h4>
+                <p><strong>AI Processing Time:</strong> ${result.ai_time ? result.ai_time.toFixed(1) : 'N/A'}ms</p>
+                <p><strong>Total Time:</strong> ${result.total_time ? result.total_time.toFixed(1) : 'N/A'}ms</p>
+                ${result.human_time ? `<p><strong>Human Review Time:</strong> ${result.human_time.toFixed(1)}ms</p>` : ''}
+                ${safetyInfo}
+                ${rewriteInfo}
+                <p><strong>Final Response:</strong></p>
+                <div style="background: white; padding: 15px; border-radius: 5px; margin-top: 10px; border-left: 4px solid #4caf50;">
+                    "${result.final_response || 'No response available'}"
+                </div>
+                ${wasRewritten ? '<p style="font-size: 12px; color: #666; margin-top: 10px;"><em>Note: This response was automatically improved by our AI rewriting system to ensure professional standards.</em></p>' : ''}
+            `;
+            showElement('result-display');
+        }
+
+        // Utility functions
+        function showElement(id) {
+            const element = document.getElementById(id);
+            if (element) element.style.display = 'block';
+        }
+
+        function hideElement(id) {
+            const element = document.getElementById(id);
+            if (element) element.style.display = 'none';
+        }
+
+        function showPipelinePanel(title) {
+            document.getElementById('pipeline-title').textContent = title;
+            document.getElementById('pipeline-panel').classList.add('active');
+        }
+
+        // Update button visibility based on current state
+        function updateButtonVisibility() {
+            // Don't show next button if review is active
+            if (currentReviewId) {
+                hideElement('next-btn');
+                return;
+            }
+
+            // Show next button if we're in interactive mode, have results, and not processing
+            if (demoState === 'interactive' && lastResult && !currentScenarioId) {
+                showElement('next-btn');
+            } else {
+                hideElement('next-btn');
+            }
+
+            // Show reset button if we're in custom mode, have results, and not processing
+            if (demoState === 'custom' && lastResult && !currentScenarioId) {
+                showElement('reset-btn');
+            }
+        }
+    </script>
+</body>
+
+</html>
