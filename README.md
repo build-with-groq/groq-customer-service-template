@@ -274,4 +274,4 @@ If you encounter issues:
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Credits
-Created by Jordan Hagan. 
+Created by [Jordan Hagan](https://www.linkedin.com/in/jordanhhagan/). 
