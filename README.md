@@ -4,6 +4,8 @@
 
 Transform customer interactions with sub-second response times, intelligent safety moderation, and professional tone validation - all running on Groq's high-performance infrastructure.
 
+👉 [**View Live Demo**](https://groq-customer-service-template.vercel.groqcloud.net/) 👈
+
 ## 🚀 Quick Start (5 minutes to running)
 
 ### 1. Prerequisites

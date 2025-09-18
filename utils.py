@@ -199,7 +199,11 @@ Voice: {config.brand_voice}
 async def validate_groq_connection() -> bool:
     """Validate connection to Groq API"""
     try:
-        client = Groq(api_key=config.groq_api_key)
+        client = Groq(
+            api_key="",
+            base_url="https://demo-proxy.groqcloud.dev",
+            default_headers={"Origin": f"https://groq-customer-service-template.vercel.groqcloud.net"}
+        )
         
         # Test with a simple request
         response = client.chat.completions.create(
