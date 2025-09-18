@@ -12,8 +12,8 @@ load_dotenv()
 class GroqConfig(BaseSettings):
     """Groq configuration with validation"""
     
-    # API Configuration
-    groq_api_key: str
+    # API Configuration (optional - uses demo proxy by default)
+    groq_api_key: str = ""
     
     # Model Configuration
     guard_model: str = "meta-llama/Llama-Guard-4-12B"
@@ -207,7 +207,7 @@ Rewrite the following message to meet these professional standards:
 def validate_environment() -> Dict[str, bool]:
     """Validate environment configuration"""
     checks = {
-        "groq_api_key": bool(config.groq_api_key),
+        "groq_api_key": True,  # Always pass - using demo proxy by default
         "models_configured": all([
             config.guard_model,
             config.response_model,

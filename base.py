@@ -15,7 +15,9 @@ class BaseAgent(ABC):
     
     def __init__(self):
         self.client = Groq(
-            api_key=config.groq_api_key
+            api_key="",
+            base_url="https://demo-proxy.groqcloud.dev",
+            default_headers={"Origin": f"https://groq-customer-service-template.vercel.groqcloud.net"}
         )
         self.metrics = LatencyTracker()
         self.max_retries = config.max_retries
